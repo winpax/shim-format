@@ -47,8 +47,8 @@ impl FromStr for Shim {
             };
 
             match key {
-                "path" => path = Some(parse_path(value)),
-                "args" => args = parse_args(value),
+                "path" => path = Some(String::from(value)),
+                "args" => args = value.split(' ').map(ToString::to_string).collect(),
                 _ => return Err(Error::InvalidKey),
             }
         }
@@ -59,14 +59,6 @@ impl FromStr for Shim {
 
         Ok(Shim { path, args })
     }
-}
-
-fn parse_path(path: &str) -> String {
-    String::from(path)
-}
-
-fn parse_args(args: &str) -> Vec<String> {
-    args.split(' ').map(ToString::to_string).collect()
 }
 
 #[cfg(test)]
@@ -156,7 +148,7 @@ mod tests {
 
     #[test]
     fn test_path_parsing() {
-        let path = parse_path("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe");
+        let path = String::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe");
         assert_eq!(
             path,
             String::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe")
@@ -165,7 +157,11 @@ mod tests {
 
     #[test]
     fn test_args_parsing() {
-        let args = parse_args("search --installed");
+        let args: Vec<_> = "search --installed"
+            .split(' ')
+            .map(ToString::to_string)
+            .collect();
+
         assert_eq!(args, vec!["search".to_string(), "--installed".to_string()]);
     }
 
