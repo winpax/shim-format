@@ -13,5 +13,7 @@ cfg-if = { version = "1.0.0", features = ["core"] }
 thiserror = "2.0"
 
 [features]
+default = ["std", "serializing", "deserializing"]
+deserializing = []
+serializing = []
 std = []
-default = ["std"]

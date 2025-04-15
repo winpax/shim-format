@@ -9,13 +9,12 @@
     missing_docs
 )]
 
-mod parsing;
+#[cfg(feature = "deserializing")]
+mod deserializing;
+#[cfg(feature = "serializing")]
 mod serializing;
 
 extern crate alloc;
-
-use alloc::string::String;
-use core::str::FromStr;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "std")] {
@@ -25,6 +24,7 @@ cfg_if::cfg_if! {
     } else {
         macro_rules! prelude {
             () => {
+                #[allow(unused_imports)]
                 use alloc::{string::{String, ToString}, vec::Vec};
             };
         }
@@ -38,11 +38,12 @@ prelude!();
 #[derive(Debug, thiserror::Error)]
 /// Errors that can occur when parsing or serializing a shim.
 pub enum Error {
+    #[cfg(feature = "deserializing")]
     #[error("{0}")]
     /// Deserializing errors
     ///
-    /// See [`parsing::Error`] for more information
-    ParsingError(#[from] parsing::Error),
+    /// See [`deserializing::Error`] for more information
+    DeserializingError(#[from] deserializing::Error),
 
     #[cfg(feature = "std")]
     #[error("{0}")]
@@ -89,6 +90,7 @@ impl Shim {
 }
 
 #[inline]
+#[cfg(feature = "deserializing")]
 /// Parse a [`Shim`] from a string
 ///
 /// This is a wrapper around [`Shim::from_str`].
@@ -96,10 +98,12 @@ impl Shim {
 /// # Errors
 /// Parsing the shim. See [`Error`] for more details.
 pub fn from_str(s: &str) -> Result<Shim, Error> {
+    use core::str::FromStr;
+
     Ok(Shim::from_str(s)?)
 }
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "deserializing"))]
 #[inline]
 /// Parse a [`Shim`] from a reader
 ///
@@ -121,6 +125,7 @@ pub fn from_reader(reader: &mut impl std::io::Read) -> Result<Shim, Error> {
 
 #[inline]
 #[must_use]
+#[cfg(feature = "serializing")]
 /// Serialize a [`Shim`] to a string
 ///
 /// This is a wrapper around [`Shim::to_string`]
@@ -128,12 +133,12 @@ pub fn to_string(shim: &Shim) -> String {
     alloc::string::ToString::to_string(shim)
 }
 
-#[cfg(feature = "std")]
+#[inline]
+#[cfg(feature = "serializing")]
 /// Write the shim to a writer
 ///
 /// # Errors
 /// Writing to the writer. See [`core::fmt::Error`] for more details.
 pub fn to_writer(shim: &Shim, writer: &mut impl core::fmt::Write) -> Result<(), Error> {
-    write!(writer, "{shim}")?;
-    Ok(())
+    Ok(writer.write_str(&shim.to_string())?)
 }
