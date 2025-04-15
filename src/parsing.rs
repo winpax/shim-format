@@ -1,10 +1,7 @@
-use crate::Shim;
-
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
 use core::str::FromStr;
+crate::prelude!();
+
+use crate::Shim;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

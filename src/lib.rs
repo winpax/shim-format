@@ -17,13 +17,23 @@ extern crate alloc;
 use alloc::string::String;
 use core::str::FromStr;
 
-use cfg_if::cfg_if;
-
-cfg_if! {
-    if #[cfg(not(feature = "std"))] {
-        use alloc::{vec::Vec, string::String};
+cfg_if::cfg_if! {
+    if #[cfg(feature = "std")] {
+        macro_rules! prelude {
+            () => {};
+        }
+    } else {
+        macro_rules! prelude {
+            () => {
+                use alloc::{string::{String, ToString}, vec::Vec};
+            };
+        }
     }
 }
+
+pub(crate) use prelude;
+
+prelude!();
 
 #[derive(Debug, thiserror::Error)]
 /// Errors that can occur when parsing or serializing a shim.
