@@ -9,6 +9,7 @@ rust-version = "1.65.0"
 version = "0.1.1"
 
 [dependencies]
+cfg-if = { version = "1.0.0", features = ["core"] }
 thiserror = "2.0"
 
 [features]

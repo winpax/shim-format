@@ -1,57 +1,28 @@
-use std::fmt::Display;
+use core::fmt::Display;
 
-use quoted::EscapedString;
+use alloc::string::String;
 
 use crate::Shim;
 
-mod quoted;
+impl Shim {
+    pub(crate) fn inner_to_string(&self) -> String {
+        let mut output = String::new();
+
+        output += self.path();
+
+        if !self.args().is_empty() {
+            output += "\r\n";
+            output += &self.args().join(" ");
+        }
+
+        output
+    }
+}
 
 impl Display for Shim {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let lines = Line::from_shim(self);
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let shim_string = self.inner_to_string();
 
-        let mut first = true;
-
-        for line in lines {
-            // Prevent trailing newlines
-            if !first {
-                Display::fmt(&"\r\n", f)?;
-            }
-
-            Display::fmt(&line, f)?;
-
-            first = false;
-        }
-
-        Ok(())
-    }
-}
-
-struct Line<'a> {
-    key: &'static str,
-    value: EscapedString<'a>,
-}
-
-impl<'a> Line<'a> {
-    fn from_shim(shim: &'a Shim) -> Vec<Self> {
-        let mut lines = vec![Line {
-            key: "path",
-            value: EscapedString::from(shim.path().to_string_lossy()).quoted(),
-        }];
-
-        if !shim.args().is_empty() {
-            lines.push(Line {
-                key: "args",
-                value: shim.args().join(" ").into(),
-            });
-        }
-
-        lines
-    }
-}
-
-impl<'a> Display for Line<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} = {}", self.key, self.value.to_string())
+        f.write_str(&shim_string)
     }
 }

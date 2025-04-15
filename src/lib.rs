@@ -12,10 +12,18 @@
 mod parsing;
 mod serializing;
 
-use std::{
-    path::{Path, PathBuf},
-    str::FromStr,
-};
+extern crate alloc;
+
+use alloc::string::String;
+use core::str::FromStr;
+
+use cfg_if::cfg_if;
+
+cfg_if! {
+    if #[cfg(not(feature = "std"))] {
+        use alloc::{vec::Vec, string::String};
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 /// Errors that can occur when parsing or serializing a shim.
@@ -26,11 +34,18 @@ pub enum Error {
     /// See [`parsing::Error`] for more information
     ParsingError(#[from] parsing::Error),
 
+    #[cfg(feature = "std")]
     #[error("{0}")]
     /// Reading from a reader errors
     ///
     /// See [`std::io::Error`] for more information
     ReadingError(#[from] std::io::Error),
+
+    #[error("{0}")]
+    /// Writing to a writer errors
+    ///
+    /// See [`core::fmt::Error`] for more information
+    WritingError(#[from] core::fmt::Error),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -39,20 +54,20 @@ pub enum Error {
 /// This holds all known supported data
 /// that a Scoop shim file can provide
 pub struct Shim {
-    path: PathBuf,
+    path: String,
     args: Vec<String>,
 }
 
 impl Shim {
     #[must_use]
     /// Construct a new [`Shim`]
-    pub fn new(path: PathBuf, args: Vec<String>) -> Self {
+    pub fn new(path: String, args: Vec<String>) -> Self {
         Self { path, args }
     }
 
     #[must_use]
     /// Get a reference to the shim's path
-    pub fn path(&self) -> &Path {
+    pub fn path(&self) -> &str {
         &self.path
     }
 
@@ -74,6 +89,7 @@ pub fn from_str(s: &str) -> Result<Shim, Error> {
     Ok(Shim::from_str(s)?)
 }
 
+#[cfg(feature = "std")]
 #[inline]
 /// Parse a [`Shim`] from a reader
 ///
@@ -99,14 +115,15 @@ pub fn from_reader(reader: &mut impl std::io::Read) -> Result<Shim, Error> {
 ///
 /// This is a wrapper around [`Shim::to_string`]
 pub fn to_string(shim: &Shim) -> String {
-    shim.to_string()
+    alloc::string::ToString::to_string(shim)
 }
 
+#[cfg(feature = "std")]
 /// Write the shim to a writer
 ///
 /// # Errors
-/// Writing to the writer. See [`std::io::Error`] for more details.
-pub fn to_writer(shim: &Shim, writer: &mut impl std::io::Write) -> Result<(), Error> {
+/// Writing to the writer. See [`core::fmt::Error`] for more details.
+pub fn to_writer(shim: &Shim, writer: &mut impl core::fmt::Write) -> Result<(), Error> {
     write!(writer, "{shim}")?;
     Ok(())
 }
