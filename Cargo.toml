@@ -2,7 +2,7 @@
 description = "A simple parser and serializer for Scoop shims"
 edition = "2021"
 include = ["src", "README.md", "LICENSE", "tests"]
-license = "Apache-2.0"
+license = "Apache-2.0 OR MIT"
 name = "scoop-shim"
 repository = "https://github.com/winpax/scoop-shim/tree/trunk"
 rust-version = "1.65.0"
