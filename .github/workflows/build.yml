@@ -68,6 +68,8 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          target: ${{ matrix.architecture }}-unknown-linux-gnu
 
       - name: Build
-        run: cargo build --all-features --target ${{ matrix.architecture }}-pc-windows-msvc
+        run: cargo build --all-features --target ${{ matrix.architecture }}-unknown-linux-gnu --release
