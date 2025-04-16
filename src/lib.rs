@@ -1,3 +1,4 @@
+#![cfg_attr(not(feature = "std"), no_std)]
 #![doc = include_str!("../README.md")]
 #![warn(
     clippy::all,
@@ -8,28 +9,54 @@
     missing_docs
 )]
 
-mod parsing;
+#[cfg(feature = "deserializing")]
+mod deserializing;
+#[cfg(feature = "serializing")]
 mod serializing;
 
-use std::{
-    path::{Path, PathBuf},
-    str::FromStr,
-};
+extern crate alloc;
+
+cfg_if::cfg_if! {
+    if #[cfg(feature = "std")] {
+        macro_rules! prelude {
+            () => {};
+        }
+    } else {
+        macro_rules! prelude {
+            () => {
+                #[allow(unused_imports)]
+                use alloc::{string::{String, ToString}, vec::Vec};
+            };
+        }
+    }
+}
+
+pub(crate) use prelude;
+
+prelude!();
 
 #[derive(Debug, thiserror::Error)]
 /// Errors that can occur when parsing or serializing a shim.
 pub enum Error {
+    #[cfg(feature = "deserializing")]
     #[error("{0}")]
     /// Deserializing errors
     ///
-    /// See [`parsing::Error`] for more information
-    ParsingError(#[from] parsing::Error),
+    /// See [`deserializing::Error`] for more information
+    DeserializingError(#[from] deserializing::Error),
 
+    #[cfg(feature = "std")]
     #[error("{0}")]
     /// Reading from a reader errors
     ///
     /// See [`std::io::Error`] for more information
     ReadingError(#[from] std::io::Error),
+
+    #[error("{0}")]
+    /// Writing to a writer errors
+    ///
+    /// See [`core::fmt::Error`] for more information
+    WritingError(#[from] core::fmt::Error),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -38,20 +65,20 @@ pub enum Error {
 /// This holds all known supported data
 /// that a Scoop shim file can provide
 pub struct Shim {
-    path: PathBuf,
+    path: String,
     args: Vec<String>,
 }
 
 impl Shim {
     #[must_use]
     /// Construct a new [`Shim`]
-    pub fn new(path: PathBuf, args: Vec<String>) -> Self {
+    pub fn new(path: String, args: Vec<String>) -> Self {
         Self { path, args }
     }
 
     #[must_use]
     /// Get a reference to the shim's path
-    pub fn path(&self) -> &Path {
+    pub fn path(&self) -> &str {
         &self.path
     }
 
@@ -63,6 +90,7 @@ impl Shim {
 }
 
 #[inline]
+#[cfg(feature = "deserializing")]
 /// Parse a [`Shim`] from a string
 ///
 /// This is a wrapper around [`Shim::from_str`].
@@ -70,9 +98,12 @@ impl Shim {
 /// # Errors
 /// Parsing the shim. See [`Error`] for more details.
 pub fn from_str(s: &str) -> Result<Shim, Error> {
+    use core::str::FromStr;
+
     Ok(Shim::from_str(s)?)
 }
 
+#[cfg(all(feature = "std", feature = "deserializing"))]
 #[inline]
 /// Parse a [`Shim`] from a reader
 ///
@@ -94,18 +125,20 @@ pub fn from_reader(reader: &mut impl std::io::Read) -> Result<Shim, Error> {
 
 #[inline]
 #[must_use]
+#[cfg(feature = "serializing")]
 /// Serialize a [`Shim`] to a string
 ///
 /// This is a wrapper around [`Shim::to_string`]
 pub fn to_string(shim: &Shim) -> String {
-    shim.to_string()
+    alloc::string::ToString::to_string(shim)
 }
 
+#[inline]
+#[cfg(feature = "serializing")]
 /// Write the shim to a writer
 ///
 /// # Errors
-/// Writing to the writer. See [`std::io::Error`] for more details.
-pub fn to_writer(shim: &Shim, writer: &mut impl std::io::Write) -> Result<(), Error> {
-    write!(writer, "{shim}")?;
-    Ok(())
+/// Writing to the writer. See [`core::fmt::Error`] for more details.
+pub fn to_writer(shim: &Shim, writer: &mut impl core::fmt::Write) -> Result<(), Error> {
+    Ok(writer.write_str(&shim.to_string())?)
 }

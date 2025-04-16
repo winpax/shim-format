@@ -1,11 +1,11 @@
-use std::{path::PathBuf, str::FromStr};
+use std::str::FromStr;
 
 use scoop_shim::Shim;
 
 #[test]
 fn test_parse_args_quoted_comment_line_breaks() {
     let shim = Shim::new(
-        PathBuf::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe"),
+        String::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe"),
         vec!["search".to_string(), "--installed".to_string()],
     );
 
@@ -19,7 +19,7 @@ fn test_parse_args_quoted_comment_line_breaks() {
 #[test]
 fn test_serialize() {
     let shim = Shim::new(
-        PathBuf::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe"),
+        String::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe"),
         vec!["search".to_string(), "--installed".to_string()],
     );
 

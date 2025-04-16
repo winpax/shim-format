@@ -1,4 +1,5 @@
-use std::{path::PathBuf, str::FromStr};
+use core::str::FromStr;
+crate::prelude!();
 
 use crate::Shim;
 
@@ -38,7 +39,7 @@ impl FromStr for Shim {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut path = None;
-        let mut args = vec![];
+        let mut args = Vec::new();
 
         for line in s.lines() {
             let Some((key, value)) = parse_line(line)? else {
@@ -46,8 +47,8 @@ impl FromStr for Shim {
             };
 
             match key {
-                "path" => path = Some(parse_path(value)),
-                "args" => args = parse_args(value),
+                "path" => path = Some(String::from(value)),
+                "args" => args = value.split(' ').map(ToString::to_string).collect(),
                 _ => return Err(Error::InvalidKey),
             }
         }
@@ -60,16 +61,6 @@ impl FromStr for Shim {
     }
 }
 
-fn parse_path(path: &str) -> PathBuf {
-    PathBuf::from(path)
-}
-
-fn parse_args(args: &str) -> Vec<String> {
-    args.split(' ')
-        .map(std::string::ToString::to_string)
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -77,7 +68,7 @@ mod tests {
     #[test]
     fn test_parse_args_quoted() {
         let args_quoted_shim = Shim {
-            path: PathBuf::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe"),
+            path: String::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe"),
             args: vec!["search".to_string(), "--installed".to_string()],
         };
 
@@ -91,7 +82,7 @@ mod tests {
     #[test]
     fn test_parse_args_quoted_no_comment() {
         let args_quoted_shim = Shim {
-            path: PathBuf::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe"),
+            path: String::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe"),
             args: vec!["search".to_string(), "--installed".to_string()],
         };
 
@@ -105,7 +96,7 @@ mod tests {
     #[test]
     fn test_parse_no_args_quoted_no_comment() {
         let no_args_quoted_shim = Shim {
-            path: PathBuf::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe"),
+            path: String::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe"),
             args: vec![],
         };
 
@@ -120,7 +111,7 @@ mod tests {
     #[test]
     fn test_parse_no_args_quoted() {
         let no_args_quoted_shim = Shim {
-            path: PathBuf::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe"),
+            path: String::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe"),
             args: vec![],
         };
 
@@ -134,7 +125,7 @@ mod tests {
     #[test]
     fn test_parse_args_quoted_comment_line_breaks() {
         let args_quoted_shim = Shim {
-            path: PathBuf::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe"),
+            path: String::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe"),
             args: vec!["search".to_string(), "--installed".to_string()],
         };
 
@@ -157,16 +148,20 @@ mod tests {
 
     #[test]
     fn test_path_parsing() {
-        let path = parse_path("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe");
+        let path = String::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe");
         assert_eq!(
             path,
-            PathBuf::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe")
+            String::from("<SCOOP_PATH>\\apps\\sfsu-beta\\current\\sfsu.exe")
         );
     }
 
     #[test]
     fn test_args_parsing() {
-        let args = parse_args("search --installed");
+        let args: Vec<_> = "search --installed"
+            .split(' ')
+            .map(ToString::to_string)
+            .collect();
+
         assert_eq!(args, vec!["search".to_string(), "--installed".to_string()]);
     }
 
